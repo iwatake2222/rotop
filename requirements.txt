@@ -1,0 +1,6 @@
+dearpygui>=1.10.1
+graphviz
+numpy
+pandas
+pexpect
+pygraphviz
