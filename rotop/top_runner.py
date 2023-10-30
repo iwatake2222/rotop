@@ -69,7 +69,7 @@ class TopRunner:
 
     # Process Information
     for line in orgial_lines[row_process_info:]:
-      if self.col_range_command and self.col_range_command[0] > 0:
+      if self.col_range_command and self.col_range_command[0] > 0 and len(line) > self.col_range_command[0]:
         process_info_org = line[:self.col_range_command[0]]
         process_info = ''
         for range in self.col_range_list_to_display:
@@ -162,7 +162,7 @@ class TopRunner:
       range_list.append((start_col, end_col))
 
       start_col = process_info_header_line.find('COMMAND') - 1
-      end_col = len(process_info_header_line) - 1
+      end_col = len(process_info_header_line)
       range_list.append((start_col, end_col))
 
     return range_list

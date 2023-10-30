@@ -64,11 +64,9 @@ classifiers=[
   python_requires=">=3.7",
   install_requires=[
     "dearpygui>=1.10.1",
-    "graphviz",
     "numpy",
     "pandas",
     "pexpect",
-    "pygraphviz",
   ],
   # tests_require=['pytest'],
   packages=find_packages(),
