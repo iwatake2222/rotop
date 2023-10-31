@@ -192,22 +192,28 @@ def gui_main(args):
   gui_thread = threading.Thread(target=gui_loop, args=(view,))
   gui_thread.start()
 
-  while True:
-    result_lines, result_show_all_lines = top_runner.run(max(50, args.num_process), True)
-    if result_show_all_lines is None:
-      time.sleep(0.1)
-      continue
+  try:
+    while True:
+      result_lines, result_show_all_lines = top_runner.run(max(50, args.num_process), True)
+      if result_show_all_lines is None:
+        time.sleep(0.1)
+        continue
 
-    df_cpu_latest, df_mem_latest = data_container.run(top_runner, result_show_all_lines, args.num_process)
+      df_cpu_latest, df_mem_latest = data_container.run(top_runner, result_show_all_lines, args.num_process)
 
-    if gui_thread.is_alive():
-      view.update_gui(result_lines, df_cpu_latest, df_mem_latest)
+      if gui_thread.is_alive():
+        view.update_gui(result_lines, df_cpu_latest, df_mem_latest)
 
-      if g_reset_latest_df:
-        data_container.reset_latest()
-        g_reset_latest_df = False
+        if g_reset_latest_df:
+          data_container.reset_latest()
+          g_reset_latest_df = False
 
-    else:
-      break
+      else:
+        break
+  except KeyboardInterrupt:
+    dpg.stop_dearpygui()
+    time.sleep(1)
+    dpg.destroy_context()
+    exit(0)
 
   gui_thread.join()

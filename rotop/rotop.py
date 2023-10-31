@@ -32,25 +32,28 @@ def main_curses(stdscr, args):
   top_runner = TopRunner(args.filter, args.interval)
   data_container = DataContainer(args.csv)
 
-  while True:
-    max_y, max_x = stdscr.getmaxyx()
-    result_lines, result_show_all_lines = top_runner.run(max(max_y, args.num_process), max_x>160)
-    if result_show_all_lines is None:
-      time.sleep(0.1)
-      continue
+  try:
+    while True:
+      max_y, max_x = stdscr.getmaxyx()
+      result_lines, result_show_all_lines = top_runner.run(max(max_y, args.num_process), max_x>160)
+      if result_show_all_lines is None:
+        time.sleep(0.1)
+        continue
 
-    _ = data_container.run(top_runner, result_show_all_lines, args.num_process)
+      _ = data_container.run(top_runner, result_show_all_lines, args.num_process)
 
-    stdscr.clear()
-    for i, line in enumerate(result_lines):
-      if i >= max_y - 1:
+      stdscr.clear()
+      for i, line in enumerate(result_lines):
+        if i >= max_y - 1:
+          break
+        stdscr.addstr(i, 0, line[:max_x])
+
+      stdscr.refresh()
+      key = stdscr.getch()
+      if key == ord('q'):
         break
-      stdscr.addstr(i, 0, line[:max_x])
-
-    stdscr.refresh()
-    key = stdscr.getch()
-    if key == ord('q'):
-      break
+  except KeyboardInterrupt:
+    exit(0)
 
 
 def parse_args():

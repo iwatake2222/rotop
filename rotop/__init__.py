@@ -15,7 +15,7 @@ from rotop.rotop import main
 
 
 __copyright__ = 'Copyright 2023 iwatake2222'
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 __license__ = 'Apache License 2.0'
 __author__ = 'iwatake2222'
 __author_email__ = 'take.iwiw2222@gmail.com'

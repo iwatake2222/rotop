@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import atexit
-import re
 import pexpect
+import re
+import signal
 
 from rotop.utility import create_logger
 
@@ -32,7 +33,10 @@ class TopRunner:
     self.col_range_command = None
     self.next_after = ''
 
-    atexit.register(lambda: self.child.close())
+
+  def __del__(self):
+    signal.signal(signal.SIGINT, signal.SIG_IGN)  # ignore ctrl-c while closing
+    self.child.close()
 
 
   def run(self, max_num_process, show_all=False):
