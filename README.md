@@ -6,10 +6,10 @@ top command for ROS 2
 
 ## Features
 
-- Replace long ROS 2 command and Python command, especially for component container
-  - :sob: normal `top` command : "`component_container`"
-  - :cold_sweat: normal `top -c` or `htop` : "`/very/long/path/component_container` `very-long-options`"
-  - :grin: `rotop` : "`{node_name} {name_space}`"
+- Replace a long displayed name for ROS 2 command and Python command, especially for component container
+  - :sob: Normal `top` command : "`component_container`"
+  - :sob: Normal `top -c` or `htop` : "`/very/long/path/component_container` `very-long-options`"
+  - :smile: My `rotop` command: "`{node_name}, {name_space}`"
 - Filter function
 - csv file logger
 - Graph plotter
@@ -40,7 +40,7 @@ python3 main.py
 
 ## Screen Shot
 
-- cui mode
+- CUI mode
   - ![](./00_doc/capture_00.png)
-- gui mode
+- GUI mode
   - ![](./00_doc/capture_01.png)
