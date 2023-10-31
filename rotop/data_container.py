@@ -24,6 +24,9 @@ logger = create_logger(__name__, log_filename='rotop.log')
 
 
 class DataContainer:
+  MAX_ROW_CSV = 600
+  MAX_NUM_HISTORY = 100
+
   def __init__(self, write_csv=False):
     now = datetime.datetime.now()
     if write_csv:
@@ -34,33 +37,42 @@ class DataContainer:
     self.csv_index = 0
     self.df_cpu = pd.DataFrame()
     self.df_mem = pd.DataFrame()
-    self.df_cpu_latest = pd.DataFrame()
-    self.df_mem_latest = pd.DataFrame()
+    self.df_cpu_history = pd.DataFrame()
+    self.df_mem_history = pd.DataFrame()
 
   def run(self, top_runner: TopRunner, lines: list[str], num_process: int):
     if top_runner.col_range_command and top_runner.col_range_command[0] > 0:
       df_cpu_current, df_mem_current = self.create_df_from_top(top_runner, lines, num_process)
       self.df_cpu = pd.concat([self.df_cpu, df_cpu_current], axis=0)
       self.df_mem = pd.concat([self.df_mem, df_mem_current], axis=0)
-      self.df_cpu_latest = pd.concat([self.df_cpu_latest, df_cpu_current], axis=0)
-      self.df_mem_latest = pd.concat([self.df_mem_latest, df_mem_current], axis=0)
+      self.df_cpu_history = pd.concat([self.df_cpu_history, df_cpu_current], axis=0, ignore_index=True)
+      self.df_mem_history = pd.concat([self.df_mem_history, df_mem_current], axis=0, ignore_index=True)
       if self.csv_dir_name:
         self.df_cpu.to_csv(os.path.join(self.csv_dir_name, f'cpu_{self.csv_index:03d}.csv'), index=False)
         self.df_mem.to_csv(os.path.join(self.csv_dir_name, f'mem_{self.csv_index:03d}.csv'), index=False)
-        if len(self.df_cpu) >= 600:
+        if len(self.df_cpu) >= self.MAX_ROW_CSV:
           self.df_cpu = pd.DataFrame()
           self.df_mem = pd.DataFrame()
           self.csv_index += 1
-      if len(self.df_cpu_latest) >= 100:
-        self.df_cpu_latest = self.df_cpu_latest[1:]
-        self.df_mem_latest = self.df_mem_latest[1:]
+      if len(self.df_cpu_history) >= self.MAX_NUM_HISTORY:
+        self.df_cpu_history = self.df_cpu_history[1:]
+        self.df_mem_history = self.df_mem_history[1:]
 
-    return self.df_cpu_latest, self.df_mem_latest
+    self.df_cpu_history = self.sort_df_in_column(self.df_cpu_history)
+    self.df_mem_history = self.sort_df_in_column(self.df_mem_history)
+
+    return self.df_cpu_history, self.df_mem_history
 
 
-  def reset_latest(self):
-    self.df_cpu_latest = pd.DataFrame()
-    self.df_mem_latest = pd.DataFrame()
+  def reset_history(self):
+    self.df_cpu_history = pd.DataFrame()
+    self.df_mem_history = pd.DataFrame()
+
+
+  @staticmethod
+  def sort_df_in_column(df: pd.DataFrame):
+    df = df.sort_values(by=len(df)-1, axis=1, ascending=False)
+    return df
 
 
   @staticmethod
@@ -80,7 +92,7 @@ class DataContainer:
         break
       pid = line[top_runner.col_range_pid[0]:top_runner.col_range_pid[1]].strip()
       command = line[top_runner.col_range_command[0]:].strip()
-      process_name = str(f'{command}({pid})')
+      process_name = str(f'{command} ({pid})')
       process_list.append(process_name)
       cpu = float(line[top_runner.col_range_CPU[0]:top_runner.col_range_CPU[1]].strip())
       cpu_list.append(cpu)

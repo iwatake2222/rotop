@@ -23,7 +23,7 @@ from rotop.utility import create_logger
 
 logger = create_logger(__name__, log_filename='rotop.log')
 
-g_reset_latest_df = False  # todo: add lock
+g_reset_history_df = False  # todo: add lock
 
 COLOR_MAP = (
   # matplotlib.cm.tab20
@@ -89,7 +89,10 @@ class GuiView:
       with dpg.group(horizontal=True):
         self.dpg_button_cpumem = dpg.add_button(label='CPU/MEM', callback=self.cb_button_cpumem)
         self.dpg_button_reset = dpg.add_button(label='RESET', callback=self.cb_button_reset)
-      with dpg.plot(label=self.get_plot_title(), use_local_time=True) as self.dpg_plot_id:
+        dpg.add_text('Help(?)')
+      with dpg.tooltip(dpg.last_item()):
+          dpg.add_text('- CLick "Reset" to clear graph and history.\n- The data in the first half of the graph has been downsampled by 1/2 or 1/4.')
+      with dpg.plot(label=self.get_plot_title(), use_local_time=True, no_title=True) as self.dpg_plot_id:
         self.dpg_plot_axis_x_id =  dpg.add_plot_axis(dpg.mvXAxis, label='datetime', time=True)
       self.dpg_text = dpg.add_text()
 
@@ -110,8 +113,8 @@ class GuiView:
 
 
   def cb_button_reset(self, sender, app_data, user_data):
-    global g_reset_latest_df
-    g_reset_latest_df = True
+    global g_reset_history_df
+    g_reset_history_df = True
     self.color_dict = {}
     self.theme_dict = {}
 
@@ -122,23 +125,23 @@ class GuiView:
     dpg.set_item_width(self.dpg_window_id, window_width)
     dpg.set_item_height(self.dpg_window_id, window_height)
     dpg.set_item_width(self.dpg_plot_id, window_width)
-    dpg.set_item_height(self.dpg_plot_id, window_height / 2 - 10)
+    dpg.set_item_height(self.dpg_plot_id, window_height / 2)
 
 
-  def update_gui(self, result_lines:list[str], df_cpu_latest:pd.DataFrame, df_mem_latest:pd.DataFrame):
+  def update_gui(self, result_lines:list[str], df_cpu_history:pd.DataFrame, df_mem_history:pd.DataFrame):
     if self.dpg_plot_axis_y_id:
       dpg.delete_item(self.dpg_plot_axis_y_id)
     self.dpg_plot_axis_y_id =  dpg.add_plot_axis(dpg.mvYAxis, label=self.get_plot_title(), lock_min=True, parent=self.dpg_plot_id)
 
-    df = df_cpu_latest if self.plot_is_cpu else df_mem_latest
+    df = df_cpu_history if self.plot_is_cpu else df_mem_history
     col_x = df.columns[0]
     cols_y = df.columns[1:]
 
     x = df[col_x].to_list()
     mabiku_sep = None    # mabiku for speed
     mabiku_interval = 2
-    if len(x) > 20:
-      mabiku_interval = 4 if len(x) > 50 else 2
+    if len(x) > DataContainer.MAX_NUM_HISTORY / 4:
+      mabiku_interval = 4 if len(x) > DataContainer.MAX_NUM_HISTORY / 2 else 2
       mabiku_sep = int(len(x) / 4) * 2 # always even number
       x = x[0:mabiku_sep:mabiku_interval] + x[mabiku_sep:]
 
@@ -146,13 +149,13 @@ class GuiView:
       y = df[col_y].to_list()
       if mabiku_sep:
         y = y[0:mabiku_sep:mabiku_interval] + y[mabiku_sep:]
-      line_series = dpg.add_line_series(x, y, label=col_y[:min(40, len(col_y))], parent=self.dpg_plot_axis_y_id)
+      line_series = dpg.add_line_series(x, y, label=col_y[:min(40, len(col_y))].ljust(40), parent=self.dpg_plot_axis_y_id)
       theme = self.get_theme(col_y)
       dpg.bind_item_theme(line_series, theme)
 
 
     if  self.plot_is_cpu:
-      dpg.add_line_series([x[0]], [100], label='', parent=self.dpg_plot_axis_y_id)  # dummy for ymax>=100
+      dpg.add_line_series([x[0]], [110], label='', parent=self.dpg_plot_axis_y_id)  # dummy for ymax>=100
     dpg.add_plot_legend(parent=self.dpg_plot_id, outside=True, location=dpg.mvPlot_Location_NorthEast)
     dpg.fit_axis_data(self.dpg_plot_axis_x_id)
     dpg.fit_axis_data(self.dpg_plot_axis_y_id)
@@ -184,7 +187,7 @@ def gui_loop(view: GuiView):
 
 
 def gui_main(args):
-  global g_reset_latest_df
+  global g_reset_history_df
   top_runner = TopRunner(args.filter, args.interval)
   data_container = DataContainer(args.csv)
 
@@ -194,19 +197,21 @@ def gui_main(args):
 
   try:
     while True:
-      result_lines, result_show_all_lines = top_runner.run(max(50, args.num_process), True)
+      result_lines, result_show_all_lines = top_runner.run(args.num_process, True)
       if result_show_all_lines is None:
         time.sleep(0.1)
         continue
 
-      df_cpu_latest, df_mem_latest = data_container.run(top_runner, result_show_all_lines, args.num_process)
+      df_cpu_history, df_mem_history = data_container.run(top_runner, result_show_all_lines, args.num_process)
+      df_cpu_history = df_cpu_history.iloc[:, :min(args.num_process, len(df_cpu_history.columns))]
+      df_mem_history = df_mem_history.iloc[:, :min(args.num_process, len(df_mem_history.columns))]
 
       if gui_thread.is_alive():
-        view.update_gui(result_lines, df_cpu_latest, df_mem_latest)
+        view.update_gui(result_lines, df_cpu_history, df_mem_history)
 
-        if g_reset_latest_df:
-          data_container.reset_latest()
-          g_reset_latest_df = False
+        if g_reset_history_df:
+          data_container.reset_history()
+          g_reset_history_df = False
 
       else:
         break
