@@ -73,6 +73,7 @@ COLOR_MAP = (
 
 class GuiView:
   def __init__(self):
+    self.pause = False  # todo: add lock
     self.plot_is_cpu = True
     self.dpg_plot_axis_x_id = None
     self.dpg_plot_axis_y_id = None
@@ -89,6 +90,7 @@ class GuiView:
       with dpg.group(horizontal=True):
         self.dpg_button_cpumem = dpg.add_button(label='CPU/MEM', callback=self.cb_button_cpumem)
         self.dpg_button_reset = dpg.add_button(label='RESET', callback=self.cb_button_reset)
+        self.dpg_button_pause = dpg.add_button(label='PAUSE', callback=self.cb_button_pause)
         dpg.add_text('Help(?)')
       with dpg.tooltip(dpg.last_item()):
           dpg.add_text('- CLick "Reset" to clear graph and history.\n- The data in the first half of the graph has been downsampled by 1/2 or 1/4.')
@@ -119,6 +121,10 @@ class GuiView:
     self.theme_dict = {}
 
 
+  def cb_button_pause(self, sender, app_data, user_data):
+    self.pause = not self.pause
+
+
   def cb_resize(self, sender, app_data):
     window_width = app_data[2]
     window_height = app_data[3]
@@ -129,6 +135,8 @@ class GuiView:
 
 
   def update_gui(self, result_lines:list[str], df_cpu_history:pd.DataFrame, df_mem_history:pd.DataFrame):
+    if self.pause:
+      return
     if self.dpg_plot_axis_y_id:
       dpg.delete_item(self.dpg_plot_axis_y_id)
     self.dpg_plot_axis_y_id =  dpg.add_plot_axis(dpg.mvYAxis, label=self.get_plot_title(), lock_min=True, parent=self.dpg_plot_id)
@@ -181,6 +189,7 @@ class GuiView:
             dpg.add_theme_color(dpg.mvPlotCol_Line, self.get_color(process_name), category=dpg.mvThemeCat_Plots)
       self.theme_dict[process_name] = theme
       return theme
+
 
 def gui_loop(view: GuiView):
   view.start_dpg()
