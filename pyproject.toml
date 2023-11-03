@@ -1,0 +1,62 @@
+[project]
+name = "rotop"
+version = "0.1.5"
+description = "top command for ROS 2"
+readme = "README.md"
+requires-python = ">=3.7"
+license = {file = "LICENSE.txt"}
+keywords = ["ros", "ros2", "tool", "cpu", "performance", "monitoring"]
+
+authors = [
+  {name = "iwatake2222", email = "take.iwiw2222@gmail.com" }
+]
+
+maintainers = [
+  {name = "iwatake2222", email = "take.iwiw2222@gmail.com" }
+]
+
+classifiers = [
+  "Development Status :: 3 - Alpha",
+
+  "Intended Audience :: Developers",
+
+  "Topic :: Utilities",
+  "Topic :: Scientific/Engineering :: Visualization",
+  "Framework :: Robot Framework :: Tool",
+
+  "License :: OSI Approved :: Apache Software License",
+
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3 :: Only",
+]
+
+dependencies = [
+  "dearpygui>=1.10.1",
+  "numpy",
+  "pandas",
+  "pexpect",
+]
+
+[project.optional-dependencies]
+dev = ["check-manifest"]
+test = ["coverage"]
+
+[project.urls]  # Optional
+"Homepage" = "https://github.com/iwatake2222/rotop"
+"Bug Reports" = "https://github.com/iwatake2222/rotop/issues"
+"Source" = "https://github.com/iwatake2222/rotop"
+
+[project.scripts]
+rotop = "rotop.__main__:main"
+
+# [tool.setuptools]
+# package-data = {"sample" = ["*.dat"]}
+
+[build-system]
+requires = ["setuptools>=43.0.0", "wheel"]
+build-backend = "setuptools.build_meta"

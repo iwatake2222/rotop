@@ -11,17 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from rotop.rotop import main
-
-
-__copyright__ = 'Copyright 2023 iwatake2222'
-__version__ = '0.1.4'
-__license__ = 'Apache License 2.0'
-__author__ = 'iwatake2222'
-__author_email__ = 'take.iwiw2222@gmail.com'
-__url__ = 'https://github.com/iwatake2222/rotop'
-__all__ = [
-  'main',
-]
-
-print(f'rotop version {__version__} by {__author__}')
+from . import data_container
+from . import gui_main
+from . import rotop
+from . import top_runner
+from . import utility
+from .rotop import main

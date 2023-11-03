@@ -23,9 +23,9 @@ def create_logger(name, level: int=logging.DEBUG, log_filename: str=None) -> log
   logger.propagate = False
   logger.setLevel(level)
   # logger.addHandler(stream_handler)
-  if log_filename:
-    file_handler = logging.FileHandler(log_filename)
-    file_handler.setLevel(level)
-    file_handler.setFormatter(handler_format)
+  # if log_filename:
+    # file_handler = logging.FileHandler(log_filename)
+    # file_handler.setLevel(level)
+    # file_handler.setFormatter(handler_format)
     # logger.addHandler(file_handler)
   return logger

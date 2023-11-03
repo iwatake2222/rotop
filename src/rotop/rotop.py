@@ -15,10 +15,10 @@ import argparse
 import curses
 import time
 
-from rotop.data_container import DataContainer
-from rotop.top_runner import TopRunner
-from rotop.gui_main import gui_main
-from rotop.utility import create_logger
+from .data_container import DataContainer
+from .top_runner import TopRunner
+from .gui_main import gui_main
+from .utility import create_logger
 
 
 logger = create_logger(__name__, log_filename='rotop.log')
@@ -28,7 +28,7 @@ def main_curses(stdscr, args):
   curses.use_default_colors()
   # curses.init_color(0, 0, 0, 0)
   curses.curs_set(0)
-  stdscr.timeout(500)
+  stdscr.timeout(100)
 
   top_runner = TopRunner(args.filter, args.interval)
   data_container = DataContainer(args.csv)

@@ -16,7 +16,7 @@ import pexpect
 import re
 import signal
 
-from rotop.utility import create_logger
+from .utility import create_logger
 
 
 logger = create_logger(__name__, log_filename='rotop.log')

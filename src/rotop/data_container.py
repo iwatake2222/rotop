@@ -16,8 +16,8 @@ import time
 import os
 import pandas as pd
 
-from rotop.top_runner import TopRunner
-from rotop.utility import create_logger
+from .top_runner import TopRunner
+from .utility import create_logger
 
 
 logger = create_logger(__name__, log_filename='rotop.log')

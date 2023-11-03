@@ -16,9 +16,9 @@ import threading
 import time
 import dearpygui.dearpygui as dpg
 
-from rotop.data_container import DataContainer
-from rotop.top_runner import TopRunner
-from rotop.utility import create_logger
+from .data_container import DataContainer
+from .top_runner import TopRunner
+from .utility import create_logger
 
 
 logger = create_logger(__name__, log_filename='rotop.log')
