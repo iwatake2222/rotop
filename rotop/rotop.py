@@ -25,7 +25,8 @@ logger = create_logger(__name__, log_filename='rotop.log')
 
 
 def main_curses(stdscr, args):
-  curses.init_color(0, 0, 0, 0)
+  curses.use_default_colors()
+  # curses.init_color(0, 0, 0, 0)
   curses.curs_set(0)
   stdscr.timeout(500)
 
