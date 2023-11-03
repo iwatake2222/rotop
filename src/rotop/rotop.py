@@ -19,6 +19,10 @@ from .data_container import DataContainer
 from .top_runner import TopRunner
 from .gui_main import gui_main
 from .utility import create_logger
+try:
+  from ._version import version
+except:
+  from .version_dummy import version
 
 
 logger = create_logger(__name__, log_filename='rotop.log')
@@ -28,7 +32,7 @@ def main_curses(stdscr, args):
   curses.use_default_colors()
   # curses.init_color(0, 0, 0, 0)
   curses.curs_set(0)
-  stdscr.timeout(100)
+  stdscr.timeout(10)
 
   top_runner = TopRunner(args.filter, args.interval)
   data_container = DataContainer(args.csv)
@@ -59,7 +63,7 @@ def main_curses(stdscr, args):
 
 def parse_args():
   parser = argparse.ArgumentParser(
-    description='rotop: top for ROS 2')
+    description=f'rotop: top for ROS 2, version {version}')
   parser.add_argument('--interval', type=float, default=2)
   parser.add_argument('--filter', type=str, default='.*')
   parser.add_argument('--csv', action='store_true', default=False)

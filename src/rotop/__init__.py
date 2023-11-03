@@ -17,3 +17,8 @@ from . import rotop
 from . import top_runner
 from . import utility
 from .rotop import main
+
+try:
+  from ._version import version
+except:
+  from .version_dummy import version

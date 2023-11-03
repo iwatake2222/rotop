@@ -1,6 +1,7 @@
 [project]
 name = "rotop"
-version = "0.1.5"
+# version = "v0"
+dynamic = ["version"]
 description = "top command for ROS 2"
 readme = "README.md"
 requires-python = ">=3.7"
@@ -46,7 +47,7 @@ dependencies = [
 dev = ["check-manifest"]
 test = ["coverage"]
 
-[project.urls]  # Optional
+[project.urls]
 "Homepage" = "https://github.com/iwatake2222/rotop"
 "Bug Reports" = "https://github.com/iwatake2222/rotop/issues"
 "Source" = "https://github.com/iwatake2222/rotop"
@@ -58,5 +59,11 @@ rotop = "rotop.__main__:main"
 # package-data = {"sample" = ["*.dat"]}
 
 [build-system]
-requires = ["setuptools>=43.0.0", "wheel"]
+requires = ["setuptools>=64", "wheel", "setuptools_scm>=8"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+version_file = "src/rotop/_version.py"
+# version_scheme= "no-guess-dev"
+local_scheme = "no-local-version"
+fallback_version = "0.0.0"

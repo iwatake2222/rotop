@@ -1,3 +1,4 @@
+_version.py
 .vscode/
 rotop*/cpu*.csv
 rotop*/mem*.csv
