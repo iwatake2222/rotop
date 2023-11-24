@@ -34,13 +34,13 @@ def main_curses(stdscr, args):
   curses.curs_set(0)
   stdscr.timeout(10)
 
-  top_runner = TopRunner(args.filter, args.interval)
+  top_runner = TopRunner(args.interval, args.filter)
   data_container = DataContainer(args.csv)
 
   try:
     while True:
       max_y, max_x = stdscr.getmaxyx()
-      result_lines, result_show_all_lines = top_runner.run(max(max_y, args.num_process), max_x>160)
+      result_lines, result_show_all_lines = top_runner.run(max(max_y, args.num_process), max_x>160, args.only_ros)
       if result_show_all_lines is None:
         time.sleep(0.1)
         continue
@@ -69,12 +69,15 @@ def parse_args():
   parser.add_argument('--csv', action='store_true', default=False)
   parser.add_argument('--gui', action='store_true', default=False)
   parser.add_argument('--num_process', type=int, default=30)
+  parser.add_argument('--only_ros', action='store_true', default=False)
+  
   args = parser.parse_args()
 
   logger.debug(f'filter: {args.filter}')
   logger.debug(f'csv: {args.csv}')
   logger.debug(f'gui: {args.gui}')
   logger.debug(f'num_process: {args.num_process}')
+  logger.debug(f'only_ros: {args.only_ros}')
 
   return args
 

@@ -23,9 +23,10 @@ logger = create_logger(__name__, log_filename='rotop.log')
 
 
 class TopRunner:
-  def __init__(self, filter, interval):
+  def __init__(self, interval, filter):
     self.child = pexpect.spawn(f'top -cb -d {interval} -o %CPU -w 512')
     self.filter_re = self.create_filter_re(filter)
+    self.ros_re = self.create_filter_re('--ros-arg|/opt/ros')
     self.col_range_list_to_display = None
     self.col_range_pid = None
     self.col_range_CPU = None
@@ -39,7 +40,7 @@ class TopRunner:
     self.child.close()
 
 
-  def run(self, max_num_process, show_all=False):
+  def run(self, max_num_process, show_all=False, only_ros=False):
     # get the result string of top command
     self.child.expect(r'top - .*load average:')
     before = self.child.before
@@ -80,6 +81,8 @@ class TopRunner:
           process_info += process_info_org[range[0]:range[1]]
         command_str = line[self.col_range_command[0]:]
         if not self.filter_re.match(command_str):
+          continue
+        if only_ros and not self.ros_re.match(command_str):
           continue
         command_str = self.parse_command_str(command_str)
 

@@ -197,7 +197,7 @@ def gui_loop(view: GuiView):
 
 def gui_main(args):
   global g_reset_history_df
-  top_runner = TopRunner(args.filter, args.interval)
+  top_runner = TopRunner(args.interval, args.filter)
   data_container = DataContainer(args.csv)
 
   view = GuiView()
@@ -206,7 +206,7 @@ def gui_main(args):
 
   try:
     while True:
-      result_lines, result_show_all_lines = top_runner.run(args.num_process, True)
+      result_lines, result_show_all_lines = top_runner.run(args.num_process, True, args.only_ros)
       if result_show_all_lines is None:
         time.sleep(0.1)
         continue
