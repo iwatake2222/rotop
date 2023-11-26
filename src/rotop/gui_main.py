@@ -88,7 +88,7 @@ class GuiView:
 
   def start_dpg(self):
     dpg.create_context()
-    dpg.create_viewport(title='rotop')
+    dpg.create_viewport(title='rotop', width=800, height=600)
     dpg.setup_dearpygui()
 
     with dpg.window(label='window', no_collapse=True, no_title_bar=True, no_move=True, no_resize=True) as self.dpg_window_id:
