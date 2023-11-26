@@ -73,6 +73,7 @@ COLOR_MAP = (
 
 class GuiView:
   def __init__(self):
+    self.is_exit = False
     self.pause = False  # todo: add lock
     self.plot_is_cpu = True
     self.dpg_plot_axis_x_id = None
@@ -81,9 +82,13 @@ class GuiView:
     self.theme_dict = {}
 
 
+  def exit(self):
+    self.is_exit = True
+
+
   def start_dpg(self):
     dpg.create_context()
-    dpg.create_viewport(title='rotop')
+    dpg.create_viewport(title='rotop', width=800, height=600)
     dpg.setup_dearpygui()
 
     with dpg.window(label='window', no_collapse=True, no_title_bar=True, no_move=True, no_resize=True) as self.dpg_window_id:
@@ -93,7 +98,7 @@ class GuiView:
         self.dpg_button_pause = dpg.add_button(label='PAUSE', callback=self.cb_button_pause)
         dpg.add_text('Help(?)')
       with dpg.tooltip(dpg.last_item()):
-          dpg.add_text('- CLick "Reset" to clear graph and history.\n- The data in the first half of the graph has been downsampled by 1/2 or 1/4.')
+        dpg.add_text('- CLick "Reset" to clear graph and history.')
       with dpg.plot(label=self.get_plot_title(), use_local_time=True, no_title=True) as self.dpg_plot_id:
         self.dpg_plot_axis_x_id =  dpg.add_plot_axis(dpg.mvXAxis, label='datetime', time=True)
       self.dpg_text = dpg.add_text()
@@ -101,7 +106,13 @@ class GuiView:
     dpg.set_viewport_resize_callback(self.cb_resize)
     self.cb_resize(None, [None, None, dpg.get_viewport_width(), dpg.get_viewport_height()])
     dpg.show_viewport()
-    dpg.start_dearpygui()
+    
+    # Manually control FPS (10fps), otherwise FPS becomes very high, which causes high CPU load
+    # dpg.start_dearpygui()
+    while dpg.is_dearpygui_running() and not self.is_exit:
+      time.sleep(0.1)
+      dpg.render_dearpygui_frame()
+
     dpg.destroy_context()
 
 
@@ -146,17 +157,8 @@ class GuiView:
     cols_y = df.columns[1:]
 
     x = df[col_x].to_list()
-    mabiku_sep = None    # mabiku for speed
-    mabiku_interval = 2
-    if len(x) > DataContainer.MAX_NUM_HISTORY / 4:
-      mabiku_interval = 4 if len(x) > DataContainer.MAX_NUM_HISTORY / 2 else 2
-      mabiku_sep = int(len(x) / 4) * 2 # always even number
-      x = x[0:mabiku_sep:mabiku_interval] + x[mabiku_sep:]
-
     for col_y in cols_y:
       y = df[col_y].to_list()
-      if mabiku_sep:
-        y = y[0:mabiku_sep:mabiku_interval] + y[mabiku_sep:]
       line_series = dpg.add_line_series(x, y, label=col_y[:min(40, len(col_y))].ljust(40), parent=self.dpg_plot_axis_y_id)
       theme = self.get_theme(col_y)
       dpg.bind_item_theme(line_series, theme)
@@ -206,6 +208,10 @@ def gui_main(args):
 
   try:
     while True:
+      if g_reset_history_df:
+        data_container.reset_history()
+        g_reset_history_df = False
+
       result_lines, result_show_all_lines = top_runner.run(args.num_process, True, args.only_ros)
       if result_show_all_lines is None:
         time.sleep(0.1)
@@ -217,17 +223,11 @@ def gui_main(args):
 
       if gui_thread.is_alive():
         view.update_gui(result_lines, df_cpu_history, df_mem_history)
-
-        if g_reset_history_df:
-          data_container.reset_history()
-          g_reset_history_df = False
-
       else:
         break
-  except KeyboardInterrupt:
-    dpg.stop_dearpygui()
-    time.sleep(1)
-    dpg.destroy_context()
-    exit(0)
 
+  except KeyboardInterrupt:
+    pass
+
+  view.exit()
   gui_thread.join()
