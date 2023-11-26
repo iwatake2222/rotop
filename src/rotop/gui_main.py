@@ -93,7 +93,7 @@ class GuiView:
         self.dpg_button_pause = dpg.add_button(label='PAUSE', callback=self.cb_button_pause)
         dpg.add_text('Help(?)')
       with dpg.tooltip(dpg.last_item()):
-          dpg.add_text('- CLick "Reset" to clear graph and history.\n- The data in the first half of the graph has been downsampled by 1/2 or 1/4.')
+        dpg.add_text('- CLick "Reset" to clear graph and history.')
       with dpg.plot(label=self.get_plot_title(), use_local_time=True, no_title=True) as self.dpg_plot_id:
         self.dpg_plot_axis_x_id =  dpg.add_plot_axis(dpg.mvXAxis, label='datetime', time=True)
       self.dpg_text = dpg.add_text()
@@ -101,7 +101,13 @@ class GuiView:
     dpg.set_viewport_resize_callback(self.cb_resize)
     self.cb_resize(None, [None, None, dpg.get_viewport_width(), dpg.get_viewport_height()])
     dpg.show_viewport()
-    dpg.start_dearpygui()
+    
+    # Manually control FPS (10fps), otherwise FPS becomes very high, which causes high CPU load
+    # dpg.start_dearpygui()
+    while dpg.is_dearpygui_running():
+      time.sleep(0.1)
+      dpg.render_dearpygui_frame()
+
     dpg.destroy_context()
 
 
@@ -146,17 +152,8 @@ class GuiView:
     cols_y = df.columns[1:]
 
     x = df[col_x].to_list()
-    mabiku_sep = None    # mabiku for speed
-    mabiku_interval = 2
-    if len(x) > DataContainer.MAX_NUM_HISTORY / 4:
-      mabiku_interval = 4 if len(x) > DataContainer.MAX_NUM_HISTORY / 2 else 2
-      mabiku_sep = int(len(x) / 4) * 2 # always even number
-      x = x[0:mabiku_sep:mabiku_interval] + x[mabiku_sep:]
-
     for col_y in cols_y:
       y = df[col_y].to_list()
-      if mabiku_sep:
-        y = y[0:mabiku_sep:mabiku_interval] + y[mabiku_sep:]
       line_series = dpg.add_line_series(x, y, label=col_y[:min(40, len(col_y))].ljust(40), parent=self.dpg_plot_axis_y_id)
       theme = self.get_theme(col_y)
       dpg.bind_item_theme(line_series, theme)
