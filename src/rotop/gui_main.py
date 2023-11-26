@@ -73,12 +73,17 @@ COLOR_MAP = (
 
 class GuiView:
   def __init__(self):
+    self.is_exit = False
     self.pause = False  # todo: add lock
     self.plot_is_cpu = True
     self.dpg_plot_axis_x_id = None
     self.dpg_plot_axis_y_id = None
     self.color_dict = {}
     self.theme_dict = {}
+
+
+  def exit(self):
+    self.is_exit = True
 
 
   def start_dpg(self):
@@ -104,7 +109,7 @@ class GuiView:
     
     # Manually control FPS (10fps), otherwise FPS becomes very high, which causes high CPU load
     # dpg.start_dearpygui()
-    while dpg.is_dearpygui_running():
+    while dpg.is_dearpygui_running() and not self.is_exit:
       time.sleep(0.1)
       dpg.render_dearpygui_frame()
 
@@ -203,6 +208,10 @@ def gui_main(args):
 
   try:
     while True:
+      if g_reset_history_df:
+        data_container.reset_history()
+        g_reset_history_df = False
+
       result_lines, result_show_all_lines = top_runner.run(args.num_process, True, args.only_ros)
       if result_show_all_lines is None:
         time.sleep(0.1)
@@ -214,17 +223,11 @@ def gui_main(args):
 
       if gui_thread.is_alive():
         view.update_gui(result_lines, df_cpu_history, df_mem_history)
-
-        if g_reset_history_df:
-          data_container.reset_history()
-          g_reset_history_df = False
-
       else:
         break
-  except KeyboardInterrupt:
-    dpg.stop_dearpygui()
-    time.sleep(1)
-    dpg.destroy_context()
-    exit(0)
 
+  except KeyboardInterrupt:
+    pass
+
+  view.exit()
   gui_thread.join()
