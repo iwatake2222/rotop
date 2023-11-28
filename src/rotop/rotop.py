@@ -64,13 +64,13 @@ def main_curses(stdscr, args):
 def parse_args():
   parser = argparse.ArgumentParser(
     description=f'rotop: top for ROS 2, version {version}')
-  parser.add_argument('--interval', type=float, default=2)
-  parser.add_argument('--filter', type=str, default='.*')
-  parser.add_argument('--csv', action='store_true', default=False)
-  parser.add_argument('--gui', action='store_true', default=False)
-  parser.add_argument('--num_process', type=int, default=30)
-  parser.add_argument('--only_ros', action='store_true', default=False)
-  
+  parser.add_argument('--interval', type=float, default=2, help="Update interval in seconds. Similar to the -d option of top.")
+  parser.add_argument('--filter', type=str, default='.*', help="Only show processes fitting to this regular expression.")
+  parser.add_argument('--csv', action='store_true', default=False, help="Activate saving data to csv file.")
+  parser.add_argument('--gui', action='store_true', default=False, help="Use GUI including plotting of CPU loads.")
+  parser.add_argument('--num_process', type=int, default=30, help="Maximum number of processes that will be shown.")
+  parser.add_argument('--only_ros', action='store_true', default=False, help="List only ROS 2 node processes.")
+
   args = parser.parse_args()
 
   logger.debug(f'filter: {args.filter}')
