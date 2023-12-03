@@ -381,9 +381,9 @@ class Top:
     'ros2 bag play ooo' -> 'python3 ros2 bag play ooo'
     """
     arg = ''
-    if cmdline[1][0] != '-':
+    if len(cmdline[1]) > 0 and cmdline[1][0] != '-':
       arg = cmdline[1]
-    elif cmdline[-1][0] != '-':
+    if len(cmdline[-1]) > 0 and cmdline[-1][0] != '-':
       arg = cmdline[-1]
 
     # arg could be very long if it's a file name

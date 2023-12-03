@@ -25,7 +25,7 @@ def main_curses(stdscr, args):
   if stdscr:
     curses.use_default_colors()
     curses.curs_set(0)
-    stdscr.timeout(args.interval * 1000)
+    stdscr.timeout(int(args.interval * 1000))
 
   top = Top(args.filter)
   data_container = DataContainer(args.csv)
