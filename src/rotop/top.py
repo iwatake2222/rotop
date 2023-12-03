@@ -383,7 +383,7 @@ class Top:
     arg = ''
     if len(cmdline[1]) > 0 and cmdline[1][0] != '-':
       arg = cmdline[1]
-    if len(cmdline[-1]) > 0 and cmdline[-1][0] != '-':
+    elif len(cmdline[-1]) > 0 and cmdline[-1][0] != '-':
       arg = cmdline[-1]
 
     # arg could be very long if it's a file name
