@@ -12,12 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import argparse
-import curses
-import time
-
-from .data_container import DataContainer
-from .top_runner import TopRunner
-from .gui_main import gui_main
+from .main_cui import main_cui
+from .main_gui import main_gui
 from .utility import create_logger
 try:
   from ._version import version
@@ -28,43 +24,10 @@ except:
 logger = create_logger(__name__, log_filename='rotop.log')
 
 
-def main_curses(stdscr, args):
-  curses.use_default_colors()
-  # curses.init_color(0, 0, 0, 0)
-  curses.curs_set(0)
-  stdscr.timeout(10)
-
-  top_runner = TopRunner(args.interval, args.filter)
-  data_container = DataContainer(args.csv)
-
-  try:
-    while True:
-      max_y, max_x = stdscr.getmaxyx()
-      result_lines, result_show_all_lines = top_runner.run(max(max_y, args.num_process), max_x>160, args.only_ros)
-      if result_show_all_lines is None:
-        time.sleep(0.1)
-        continue
-
-      _ = data_container.run(top_runner, result_show_all_lines, args.num_process)
-
-      stdscr.clear()
-      for i, line in enumerate(result_lines):
-        if i >= max_y - 1:
-          break
-        stdscr.addstr(i, 0, line[:max_x])
-
-      stdscr.refresh()
-      key = stdscr.getch()
-      if key == ord('q'):
-        break
-  except KeyboardInterrupt:
-    exit(0)
-
-
 def parse_args():
   parser = argparse.ArgumentParser(
     description=f'rotop: top for ROS 2, version {version}')
-  parser.add_argument('--interval', type=float, default=2, help="Update interval in seconds. Similar to the -d option of top.")
+  parser.add_argument('-d', '--interval', type=float, default=1, help="Update interval in seconds. Similar to the -d option of top.")
   parser.add_argument('--filter', type=str, default='.*', help="Only show processes fitting to this regular expression.")
   parser.add_argument('--csv', action='store_true', default=False, help="Activate saving data to csv file.")
   parser.add_argument('--gui', action='store_true', default=False, help="Use GUI including plotting of CPU loads.")
@@ -85,6 +48,6 @@ def parse_args():
 def main():
   args = parse_args()
   if args.gui:
-    gui_main(args)
+    main_gui(args)
   else:
-    curses.wrapper(main_curses, args)
+    main_cui(args)

@@ -17,13 +17,12 @@ import time
 import dearpygui.dearpygui as dpg
 
 from .data_container import DataContainer
-from .top_runner import TopRunner
+from .top import Top
 from .utility import create_logger
 
 
 logger = create_logger(__name__, log_filename='rotop.log')
 
-g_reset_history_df = False  # todo: add lock
 
 COLOR_MAP = (
   # matplotlib.cm.tab20
@@ -74,7 +73,8 @@ COLOR_MAP = (
 class GuiView:
   def __init__(self):
     self.is_exit = False
-    self.pause = False  # todo: add lock
+    self.pause = False
+    self.reset_history = False
     self.plot_is_cpu = True
     self.dpg_plot_axis_x_id = None
     self.dpg_plot_axis_y_id = None
@@ -95,12 +95,9 @@ class GuiView:
       with dpg.group(horizontal=True):
         self.dpg_button_cpumem = dpg.add_button(label='CPU/MEM', callback=self.cb_button_cpumem)
         self.dpg_button_reset = dpg.add_button(label='RESET', callback=self.cb_button_reset)
-        self.dpg_button_pause = dpg.add_button(label='PAUSE', callback=self.cb_button_pause)
-        dpg.add_text('Help(?)')
-      with dpg.tooltip(dpg.last_item()):
-        dpg.add_text('- CLick "Reset" to clear graph and history.')
+        self.dpg_checkbox_pause = dpg.add_checkbox(label='PAUSE')
       with dpg.plot(label=self.get_plot_title(), use_local_time=True, no_title=True) as self.dpg_plot_id:
-        self.dpg_plot_axis_x_id =  dpg.add_plot_axis(dpg.mvXAxis, label='datetime', time=True)
+        self.dpg_plot_axis_x_id =  dpg.add_plot_axis(dpg.mvXAxis, label=None, time=True)
       self.dpg_text = dpg.add_text()
 
     dpg.set_viewport_resize_callback(self.cb_resize)
@@ -110,8 +107,8 @@ class GuiView:
     # Manually control FPS (10fps), otherwise FPS becomes very high, which causes high CPU load
     # dpg.start_dearpygui()
     while dpg.is_dearpygui_running() and not self.is_exit:
-      time.sleep(0.1)
       dpg.render_dearpygui_frame()
+      time.sleep(0.1)
 
     dpg.destroy_context()
 
@@ -126,14 +123,9 @@ class GuiView:
 
 
   def cb_button_reset(self, sender, app_data, user_data):
-    global g_reset_history_df
-    g_reset_history_df = True
+    self.reset_history = True
     self.color_dict = {}
     self.theme_dict = {}
-
-
-  def cb_button_pause(self, sender, app_data, user_data):
-    self.pause = not self.pause
 
 
   def cb_resize(self, sender, app_data):
@@ -145,8 +137,8 @@ class GuiView:
     dpg.set_item_height(self.dpg_plot_id, window_height / 2)
 
 
-  def update_gui(self, result_lines:list[str], df_cpu_history:pd.DataFrame, df_mem_history:pd.DataFrame):
-    if self.pause:
+  def update_gui(self, top_lines:list[str], df_cpu_history:pd.DataFrame, df_mem_history:pd.DataFrame):
+    if dpg.get_value(self.dpg_checkbox_pause):
       return
     if self.dpg_plot_axis_y_id:
       dpg.delete_item(self.dpg_plot_axis_y_id)
@@ -159,10 +151,10 @@ class GuiView:
     x = df[col_x].to_list()
     for col_y in cols_y:
       y = df[col_y].to_list()
-      line_series = dpg.add_line_series(x, y, label=col_y[:min(40, len(col_y))].ljust(40), parent=self.dpg_plot_axis_y_id)
+      process_name = col_y[:min(40, len(col_y))].ljust(40)
+      line_series = dpg.add_line_series(x, y, label=process_name, parent=self.dpg_plot_axis_y_id)
       theme = self.get_theme(col_y)
       dpg.bind_item_theme(line_series, theme)
-
 
     if  self.plot_is_cpu:
       dpg.add_line_series([x[0]], [110], label='', parent=self.dpg_plot_axis_y_id)  # dummy for ymax>=100
@@ -170,7 +162,7 @@ class GuiView:
     dpg.fit_axis_data(self.dpg_plot_axis_x_id)
     dpg.fit_axis_data(self.dpg_plot_axis_y_id)
 
-    dpg.set_value(self.dpg_text, '\n'.join(result_lines))
+    dpg.set_value(self.dpg_text, '\n'.join(top_lines))
 
 
   def get_color(self, process_name)->tuple[int]:
@@ -181,6 +173,7 @@ class GuiView:
       color = COLOR_MAP[len(self.color_dict)%len(COLOR_MAP)]
       self.color_dict[process_name] = color
       return color
+
 
   def get_theme(self, process_name):
     if process_name in self.theme_dict:
@@ -193,38 +186,31 @@ class GuiView:
       return theme
 
 
-def gui_loop(view: GuiView):
-  view.start_dpg()
-
-
-def gui_main(args):
-  global g_reset_history_df
-  top_runner = TopRunner(args.interval, args.filter)
+def main_gui(args):
+  top = Top(args.filter)
   data_container = DataContainer(args.csv)
 
   view = GuiView()
-  gui_thread = threading.Thread(target=gui_loop, args=(view,))
+  gui_thread = threading.Thread(target=view.start_dpg)
   gui_thread.start()
 
   try:
     while True:
-      if g_reset_history_df:
+      if view.reset_history:
         data_container.reset_history()
-        g_reset_history_df = False
+        view.reset_history = False
 
-      result_lines, result_show_all_lines = top_runner.run(args.num_process, True, args.only_ros)
-      if result_show_all_lines is None:
-        time.sleep(0.1)
-        continue
-
-      df_cpu_history, df_mem_history = data_container.run(top_runner, result_show_all_lines, args.num_process)
-      df_cpu_history = df_cpu_history.iloc[:, :min(args.num_process, len(df_cpu_history.columns))]
-      df_mem_history = df_mem_history.iloc[:, :min(args.num_process, len(df_mem_history.columns))]
+      top_lines = top.run(num_process=args.num_process, only_ros=args.only_ros)
+      df_cpu_history, df_mem_history = data_container.run(top)
+      df_cpu_history = df_cpu_history.iloc[:, :min(args.num_process + 1, len(df_cpu_history.columns))]
+      df_mem_history = df_mem_history.iloc[:, :min(args.num_process + 1, len(df_mem_history.columns))]
 
       if gui_thread.is_alive():
-        view.update_gui(result_lines, df_cpu_history, df_mem_history)
+        view.update_gui(top_lines, df_cpu_history, df_mem_history)
       else:
         break
+
+      time.sleep(args.interval)
 
   except KeyboardInterrupt:
     pass

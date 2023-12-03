@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from . import data_container
-from . import gui_main
+from . import main_cui
+from . import main_gui
 from . import rotop
-from . import top_runner
+from . import top
 from . import utility
 from .rotop import main
 
