@@ -254,66 +254,36 @@ class Top:
   @staticmethod
   def get_process_info(pid: int, p: psutil.Process, filter_re: re, ros_re: re, show_all_info: bool, only_ros: bool):
     try:
-      name = p.name()
+      read_info = p.as_dict(['name', 'cmdline', 'username', 'status', 'cpu_percent', 'memory_info', 'memory_percent', 'cpu_times'])
     except:
-      name = str(pid)
+      return None, None
 
-    try:
-      cmdline = p.cmdline()
-    except:
-      cmdline = name
-
-    cmd_all = ' '.join(cmdline)
+    cmd_all = ' '.join(read_info['cmdline'])
     if not filter_re.match(cmd_all):
       return None, None
     if only_ros and not ros_re.match(cmd_all):
       return None, None
-    command = Top.parse_command(name, cmdline)
+    command = Top.parse_command(read_info['name'], read_info['cmdline'])
+
+    vms = int(read_info['memory_info'].vms/KiB)
+    rss = int(read_info['memory_info'].rss/KiB)
+    shared = int(read_info['memory_info'].shared/KiB)
 
     try:
-      username = p.username()
-    except:
-      username = ''
-
-    try:
-      status = p.status()
-      status_char = status[0].upper()
-    except:
-      status_char = 'X'
-
-    try:
-      cpu_percent = p.cpu_percent()
-    except:
-      cpu_percent = 0
-
-    try:
-      memory_info = p.memory_info()
-      vms = int(memory_info.vms/KiB)
-      rss = int(memory_info.rss/KiB)
-      shared = int(memory_info.shared/KiB)
-    except:
-      vms = rss = shared = 0
-
-    try:
-      memory_percent = p.memory_percent()
-    except:
-      memory_percent = 0
-
-    try:
-      ctime = datetime.timedelta(seconds=sum(p.cpu_times()))
+      ctime = datetime.timedelta(seconds=sum(read_info['cpu_times']))
       ctime = f'{ctime.seconds // 60 % 60}:{str(ctime.seconds % 60).zfill(2)}.{str(ctime.microseconds)[:2]}'
     except:
       ctime = ''
 
     process_info = {}
     process_info['pid'] = pid
-    process_info['username'] = username
+    process_info['username'] = read_info['username']
     process_info['vms'] = vms
     process_info['rss'] = rss
     process_info['shared'] = shared
-    process_info['status'] = status_char
-    process_info['cpu_percent'] = cpu_percent
-    process_info['memory_percent'] = memory_percent
+    process_info['status'] = read_info['status']
+    process_info['cpu_percent'] = read_info['cpu_percent']
+    process_info['memory_percent'] = read_info['memory_percent']
     process_info['ctime'] = ctime
     process_info['command'] = command
 
@@ -324,7 +294,7 @@ class Top:
       process_info_str += f'{process_info["vms"]:>8} '
       process_info_str += f'{process_info["rss"]:>8} '
       process_info_str += f'{process_info["shared"]:>8} '
-      process_info_str += f'{process_info["status"]} '
+      process_info_str += f'{process_info["status"][0].upper()} '
     process_info_str += f'{process_info["cpu_percent"]:5.1f} '
     process_info_str += f'{process_info["memory_percent"]:5.1f} '
     process_info_str += f'{process_info["ctime"]:>9} '
