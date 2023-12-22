@@ -1,4 +1,4 @@
 dearpygui>=1.10.1
 numpy
 pandas
-pexpect
+psutil
