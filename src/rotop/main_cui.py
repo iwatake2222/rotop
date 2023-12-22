@@ -28,7 +28,7 @@ def main_curses(stdscr, args):
     curses.curs_set(0)
     stdscr.timeout(int(args.interval * 1000))
 
-  top = Top(args.filter)
+  top = Top(args.filter, args.only_ros)
   data_container = DataContainer(args.csv)
 
   each_cpu = False
@@ -39,7 +39,7 @@ def main_curses(stdscr, args):
     else:
       max_y, max_x = 1000, 1000
 
-    top_lines = top.run(num_process=args.num_process, show_all_info=max_x>160, only_ros=args.only_ros, each_cpu=each_cpu)
+    top_lines = top.run(num_process=args.num_process, show_all_info=max_x>160, each_cpu=each_cpu)
     _ = data_container.run(top)
 
     if stdscr:

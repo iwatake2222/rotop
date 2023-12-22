@@ -25,13 +25,21 @@ KiB = 1024
 MiB = 1024 * 1024
 
 
+class Process:
+  def __init__(self, p: psutil.Process, username: str, command: str):
+    self.p = p
+    self.username = username
+    self.command = command
+
+
 class Top:
-  def __init__(self, filter):
+  def __init__(self, filter, only_ros):
     self.filter_re = self.create_filter_re(filter)
     self.ros_re = self.create_filter_re('--ros-arg|/opt/ros')
+    self.only_ros = only_ros
 
     # Store process instance
-    self.process_dict = {}
+    self.process_dict:dict[int, Process] = {}
 
     # Store result
     self.process_info_list = []
@@ -43,18 +51,22 @@ class Top:
     self.swap_summary = {}
 
 
-  def run(self, num_process, show_all_info=False, only_ros=False, each_cpu=False)->list[str]:
-    process_info_list = []
-    process_info_str_list = []
+  def run(self, num_process: int, show_all_info: bool = False, each_cpu: bool = False) -> list[str]:
+    process_info_list:list[dict] = []
+    process_info_str_list:list[str] = []
     status_count_dict = {
       psutil.STATUS_RUNNING: 0,
       psutil.STATUS_SLEEPING: 0,
       psutil.STATUS_STOPPED: 0,
       psutil.STATUS_ZOMBIE: 0,
     }
+
+    # Find processes newly created/killed and get constant info (user name, command line)
     self.update_process()
+
+    # Get real time information for each process
     for pid, process in self.process_dict.items():
-      process_info, process_info_str = self.get_process_info(pid, process, self.filter_re, self.ros_re, show_all_info, only_ros)
+      process_info, process_info_str = self.get_process_info(pid, process, show_all_info)
       if process_info is None:
         continue
       process_info_list.append(process_info)
@@ -67,6 +79,7 @@ class Top:
     process_info_list = process_info_list[:num_process]
     process_info_str_list = process_info_str_list[:num_process]
 
+    # Get system information
     uptime_summary, uptime_summary_str = self.get_uptime_summary()
     task_summary, task_summary_str = self.get_task_summary(len(self.process_dict), status_count_dict)
     cpu_summary, cpu_summary_each, cpu_summary_str, summary_each_str = self.get_cpu_summary()
@@ -105,10 +118,76 @@ class Top:
     saved_pids = self.process_dict.keys()
     new_pids = list(set(current_pids) - set(saved_pids))
     deleted_pids = list(set(saved_pids) - set(current_pids))
+
+    # Store created processes
     for pid in new_pids:
-      self.process_dict[pid] = psutil.Process(pid)
+      p = psutil.Process(pid)
+      read_info = p.as_dict(['username', 'name', 'cmdline'])
+      username = read_info['username'][:8]
+      name = read_info['name']
+      cmdline = read_info['cmdline']
+
+      # Convert to readable command line
+      if len(cmdline) > 0:
+        cmd_all = ' '.join(cmdline)
+      else:
+        cmd_all = name
+      if not self.filter_re.match(cmd_all):
+        continue
+      if self.only_ros and not self.ros_re.match(cmd_all):
+        continue
+      command = Top.parse_command(name, cmdline, cmd_all)
+      self.process_dict[pid] = Process(p, username, command)
+
+    # Remove killed processes
     for pid in deleted_pids:
       del self.process_dict[pid]
+
+
+  @staticmethod
+  def get_process_info(pid: int, process: Process, show_all_info: bool):
+    try:
+      p = process.p
+      read_info = p.as_dict(['status', 'cpu_percent', 'memory_info', 'memory_percent', 'cpu_times'])
+    except:
+      return None, None
+
+    vms = int(read_info['memory_info'].vms/KiB)
+    rss = int(read_info['memory_info'].rss/KiB)
+    shared = int(read_info['memory_info'].shared/KiB)
+
+    try:
+      ctime = datetime.timedelta(seconds=sum(read_info['cpu_times']))
+      ctime = f'{ctime.seconds // 60 % 60}:{str(ctime.seconds % 60).zfill(2)}.{str(ctime.microseconds)[:2]}'
+    except:
+      ctime = ''
+
+    process_info = {}
+    process_info['pid'] = pid
+    process_info['username'] = process.username
+    process_info['vms'] = vms
+    process_info['rss'] = rss
+    process_info['shared'] = shared
+    process_info['status'] = read_info['status']
+    process_info['cpu_percent'] = read_info['cpu_percent']
+    process_info['memory_percent'] = read_info['memory_percent']
+    process_info['ctime'] = ctime
+    process_info['command'] = process.command
+
+    process_info_str = ''
+    process_info_str += f'{process_info["pid"]:>5} '
+    process_info_str += f'{process_info["username"]:<8} '
+    if show_all_info:
+      process_info_str += f'{process_info["vms"]:>10} '
+      process_info_str += f'{process_info["rss"]:>10} '
+      process_info_str += f'{process_info["shared"]:>10} '
+      process_info_str += f'{process_info["status"][0].upper()} '
+    process_info_str += f'{process_info["cpu_percent"]:5.1f} '
+    process_info_str += f'{process_info["memory_percent"]:5.1f} '
+    process_info_str += f'{process_info["ctime"]:>9} '
+    process_info_str += process_info['command']
+
+    return process_info, process_info_str
 
 
   @staticmethod
@@ -250,61 +329,6 @@ class Top:
     header += f'{"TIME+":>9} '
     header += 'COMMAND'
     return header
-
-
-  @staticmethod
-  def get_process_info(pid: int, p: psutil.Process, filter_re: re, ros_re: re, show_all_info: bool, only_ros: bool):
-    try:
-      read_info = p.as_dict(['name', 'cmdline', 'username', 'status', 'cpu_percent', 'memory_info', 'memory_percent', 'cpu_times'])
-    except:
-      return None, None
-
-    if len(read_info['cmdline']) > 0:
-      cmd_all = ' '.join(read_info['cmdline'])
-    else:
-      cmd_all = read_info['name']
-    if not filter_re.match(cmd_all):
-      return None, None
-    if only_ros and not ros_re.match(cmd_all):
-      return None, None
-    command = Top.parse_command(read_info['name'], read_info['cmdline'], cmd_all)
-
-    vms = int(read_info['memory_info'].vms/KiB)
-    rss = int(read_info['memory_info'].rss/KiB)
-    shared = int(read_info['memory_info'].shared/KiB)
-
-    try:
-      ctime = datetime.timedelta(seconds=sum(read_info['cpu_times']))
-      ctime = f'{ctime.seconds // 60 % 60}:{str(ctime.seconds % 60).zfill(2)}.{str(ctime.microseconds)[:2]}'
-    except:
-      ctime = ''
-
-    process_info = {}
-    process_info['pid'] = pid
-    process_info['username'] = read_info['username'][:8]
-    process_info['vms'] = vms
-    process_info['rss'] = rss
-    process_info['shared'] = shared
-    process_info['status'] = read_info['status']
-    process_info['cpu_percent'] = read_info['cpu_percent']
-    process_info['memory_percent'] = read_info['memory_percent']
-    process_info['ctime'] = ctime
-    process_info['command'] = command
-
-    process_info_str = ''
-    process_info_str += f'{process_info["pid"]:>5} '
-    process_info_str += f'{process_info["username"]:<8} '
-    if show_all_info:
-      process_info_str += f'{process_info["vms"]:>10} '
-      process_info_str += f'{process_info["rss"]:>10} '
-      process_info_str += f'{process_info["shared"]:>10} '
-      process_info_str += f'{process_info["status"][0].upper()} '
-    process_info_str += f'{process_info["cpu_percent"]:5.1f} '
-    process_info_str += f'{process_info["memory_percent"]:5.1f} '
-    process_info_str += f'{process_info["ctime"]:>9} '
-    process_info_str += process_info['command']
-
-    return process_info, process_info_str
 
 
   @staticmethod

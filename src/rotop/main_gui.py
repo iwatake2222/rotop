@@ -188,7 +188,7 @@ class GuiView:
 
 
 def main_gui(args):
-  top = Top(args.filter)
+  top = Top(args.filter, args.only_ros)
   data_container = DataContainer(args.csv)
 
   view = GuiView()
@@ -201,7 +201,7 @@ def main_gui(args):
         data_container.reset_history()
         view.reset_history = False
 
-      top_lines = top.run(num_process=args.num_process, only_ros=args.only_ros)
+      top_lines = top.run(num_process=args.num_process)
       df_cpu_history, df_mem_history = data_container.run(top)
       df_cpu_history = df_cpu_history.iloc[:, :min(args.num_process + 1, len(df_cpu_history.columns))]
       df_mem_history = df_mem_history.iloc[:, :min(args.num_process + 1, len(df_mem_history.columns))]
