@@ -241,9 +241,9 @@ class Top:
     header += f'{"PID":>5} '
     header += f'{"USER":<8} '
     if show_all_info:
-      header += f'{"VIRT":>8} '
-      header += f'{"RES":>8} '
-      header += f'{"SHR":>8} '
+      header += f'{"VIRT":>10} '
+      header += f'{"RES":>10} '
+      header += f'{"SHR":>10} '
       header += 'S '
     header += f'{"%CPU":>5} '
     header += f'{"%MEM":>5} '
@@ -259,12 +259,15 @@ class Top:
     except:
       return None, None
 
-    cmd_all = ' '.join(read_info['cmdline'])
+    if len(read_info['cmdline']) > 0:
+      cmd_all = ' '.join(read_info['cmdline'])
+    else:
+      cmd_all = read_info['name']
     if not filter_re.match(cmd_all):
       return None, None
     if only_ros and not ros_re.match(cmd_all):
       return None, None
-    command = Top.parse_command(read_info['name'], read_info['cmdline'])
+    command = Top.parse_command(read_info['name'], read_info['cmdline'], cmd_all)
 
     vms = int(read_info['memory_info'].vms/KiB)
     rss = int(read_info['memory_info'].rss/KiB)
@@ -278,7 +281,7 @@ class Top:
 
     process_info = {}
     process_info['pid'] = pid
-    process_info['username'] = read_info['username']
+    process_info['username'] = read_info['username'][:8]
     process_info['vms'] = vms
     process_info['rss'] = rss
     process_info['shared'] = shared
@@ -292,9 +295,9 @@ class Top:
     process_info_str += f'{process_info["pid"]:>5} '
     process_info_str += f'{process_info["username"]:<8} '
     if show_all_info:
-      process_info_str += f'{process_info["vms"]:>8} '
-      process_info_str += f'{process_info["rss"]:>8} '
-      process_info_str += f'{process_info["shared"]:>8} '
+      process_info_str += f'{process_info["vms"]:>10} '
+      process_info_str += f'{process_info["rss"]:>10} '
+      process_info_str += f'{process_info["shared"]:>10} '
       process_info_str += f'{process_info["status"][0].upper()} '
     process_info_str += f'{process_info["cpu_percent"]:5.1f} '
     process_info_str += f'{process_info["memory_percent"]:5.1f} '
@@ -369,9 +372,8 @@ class Top:
 
 
   @staticmethod
-  def parse_command(name, cmdline):
+  def parse_command(name, cmdline, cmd_all):
     param_for_ros2 = ['__node', '__ns']
-    cmd_all = ' '.join(cmdline)
     if len(cmdline) > 1:
       command = Top.parse_command_arg(name, cmdline)
     elif any(item in cmd_all for item in param_for_ros2):

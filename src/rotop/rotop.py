@@ -28,7 +28,7 @@ logger = create_logger(__name__, log_filename='rotop.log')
 def parse_args():
   parser = argparse.ArgumentParser(
     description=f'rotop: top for ROS 2, version {version}')
-  parser.add_argument('-d', '--interval', type=float, default=1, help="Update interval in seconds. Similar to the -d option of top.")
+  parser.add_argument('-d', '--interval', type=float, default=3, help="Update interval in seconds. Similar to the -d option of top.")
   parser.add_argument('--filter', type=str, default='.*', help="Only show processes fitting to this regular expression.")
   parser.add_argument('--csv', action='store_true', default=False, help="Activate saving data to csv file.")
   parser.add_argument('--gui', action='store_true', default=False, help="Use GUI including plotting of CPU loads.")
