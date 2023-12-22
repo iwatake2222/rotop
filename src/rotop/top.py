@@ -175,7 +175,7 @@ class Top:
     process_info['command'] = process.command
 
     process_info_str = ''
-    process_info_str += f'{process_info["pid"]:>5} '
+    process_info_str += f'{process_info["pid"]:>6} '
     process_info_str += f'{process_info["username"]:<8} '
     if show_all_info:
       process_info_str += f'{process_info["vms"]:>10} '
@@ -317,7 +317,7 @@ class Top:
   @staticmethod
   def get_process_info_header(show_all_info: bool):
     header = ''
-    header += f'{"PID":>5} '
+    header += f'{"PID":>6} '
     header += f'{"USER":<8} '
     if show_all_info:
       header += f'{"VIRT":>10} '
@@ -354,9 +354,9 @@ class Top:
     ns = None
     for i, arg in enumerate(cmdline):
       if '__node' in arg:
-        node = cmdline[i+1]
+        node = arg.split('=')[1]
       if '__ns' in arg:
-        ns = cmdline[i+1]
+        ns = arg.split('=')[1]
 
     if node:
       command = node
@@ -388,20 +388,21 @@ class Top:
     arg = arg.split('/')[-1]
 
     # For ROS cli
-    # e.g. 'ros2 bag play ooo' -> 'python3 ros2 bag play ooo'
+    # e.g. 'ros2 bag play ooo' -> 'ros2 bag play ooo'
     if arg == 'ros2':
       arg += ' ' + ' '.join(cmdline[2:5])
-
-    return name + ' ' + arg
+      return arg
+    else:
+      return name + ' ' + arg
 
 
   @staticmethod
   def parse_command(name, cmdline, cmd_all):
     param_for_ros2 = ['__node', '__ns']
-    if len(cmdline) > 1:
-      command = Top.parse_command_arg(name, cmdline)
-    elif any(item in cmd_all for item in param_for_ros2):
+    if any(item in cmd_all for item in param_for_ros2):
         command = Top.parse_command_ros(name, cmdline)
+    elif len(cmdline) > 1:
+      command = Top.parse_command_arg(name, cmdline)
     else:
         command = name
     return command
