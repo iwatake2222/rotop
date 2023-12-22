@@ -123,15 +123,20 @@ class Top:
     for pid in new_pids:
       p = psutil.Process(pid)
       read_info = p.as_dict(['username', 'name', 'cmdline'])
-      username = read_info['username'][:8]
-      name = read_info['name']
-      cmdline = read_info['cmdline']
+      if read_info:
+        username = read_info['username'][:8]
+        name = read_info['name']
+        cmdline = read_info['cmdline']
+      else:
+        continue
 
       # Convert to readable command line
-      if len(cmdline) > 0:
+      if cmdline and len(cmdline) > 0:
         cmd_all = ' '.join(cmdline)
-      else:
+      elif name and len(name) > 0:
         cmd_all = name
+      else:
+        continue
       if not self.filter_re.match(cmd_all):
         continue
       if self.only_ros and not self.ros_re.match(cmd_all):
