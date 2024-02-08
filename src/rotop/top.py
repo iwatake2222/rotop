@@ -121,8 +121,11 @@ class Top:
 
     # Store created processes
     for pid in new_pids:
-      p = psutil.Process(pid)
-      read_info = p.as_dict(['username', 'name', 'cmdline'])
+      try:
+        p = psutil.Process(pid)
+        read_info = p.as_dict(['username', 'name', 'cmdline'])
+      except:
+        continue
       if read_info:
         username = read_info['username'][:8]
         name = read_info['name']
