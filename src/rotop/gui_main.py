@@ -218,7 +218,7 @@ def gui_main(args):
         time.sleep(0.1)
         continue
 
-      df_cpu_history, df_mem_history = data_container.run(top_runner, result_show_all_lines, args.num_process)
+      _, df_cpu_history, df_mem_history = data_container.run(top_runner, result_show_all_lines, args.num_process)
       df_cpu_history = df_cpu_history.iloc[:, :min(args.num_process, len(df_cpu_history.columns))]
       df_mem_history = df_mem_history.iloc[:, :min(args.num_process, len(df_mem_history.columns))]
 

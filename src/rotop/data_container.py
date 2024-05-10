@@ -25,7 +25,7 @@ logger = create_logger(__name__, log_filename='rotop.log')
 
 
 class DataContainer:
-  MAX_ROW_CSV = 600
+  MAX_ROW_CSV = 1000
   MAX_NUM_HISTORY = 100
 
   def __init__(self, write_csv=False):
@@ -36,33 +36,40 @@ class DataContainer:
     else:
       self.csv_dir_name = None
     self.csv_index = 0
+    self.df_total = pd.DataFrame()
     self.df_cpu = pd.DataFrame()
     self.df_mem = pd.DataFrame()
+    self.df_total_history = pd.DataFrame()
     self.df_cpu_history = pd.DataFrame()
     self.df_mem_history = pd.DataFrame()
 
   def run(self, top_runner: TopRunner, lines: list[str], num_process: int):
     if top_runner.col_range_command and top_runner.col_range_command[0] > 0:
-      df_cpu_current, df_mem_current = self.create_df_from_top(top_runner, lines, num_process)
+      df_total_current, df_cpu_current, df_mem_current = self.create_df_from_top(top_runner, lines, num_process)
+      self.df_total = pd.concat([self.df_total, df_total_current], axis=0)
       self.df_cpu = pd.concat([self.df_cpu, df_cpu_current], axis=0)
       self.df_mem = pd.concat([self.df_mem, df_mem_current], axis=0)
+      self.df_total_history = pd.concat([self.df_total_history, df_cpu_current], axis=0, ignore_index=True)
       self.df_cpu_history = pd.concat([self.df_cpu_history, df_cpu_current], axis=0, ignore_index=True)
       self.df_mem_history = pd.concat([self.df_mem_history, df_mem_current], axis=0, ignore_index=True)
       if self.csv_dir_name:
+        self.df_total.to_csv(os.path.join(self.csv_dir_name, f'total_{self.csv_index:03d}.csv'), index=False)
         self.df_cpu.to_csv(os.path.join(self.csv_dir_name, f'cpu_{self.csv_index:03d}.csv'), index=False)
         self.df_mem.to_csv(os.path.join(self.csv_dir_name, f'mem_{self.csv_index:03d}.csv'), index=False)
-        if len(self.df_cpu) >= self.MAX_ROW_CSV:
+        if len(self.df_total) >= self.MAX_ROW_CSV:
+          self.df_total = pd.DataFrame()
           self.df_cpu = pd.DataFrame()
           self.df_mem = pd.DataFrame()
           self.csv_index += 1
-      if len(self.df_cpu_history) >= self.MAX_NUM_HISTORY:
+      if len(self.df_total_history) >= self.MAX_NUM_HISTORY:
+        self.df_total_history = self.df_total_history[1:]
         self.df_cpu_history = self.df_cpu_history[1:]
         self.df_mem_history = self.df_mem_history[1:]
 
     self.df_cpu_history = self.sort_df_in_column(self.df_cpu_history)
     self.df_mem_history = self.sort_df_in_column(self.df_mem_history)
 
-    return self.df_cpu_history, self.df_mem_history
+    return self.df_total_history, self.df_cpu_history, self.df_mem_history
 
 
   def reset_history(self):
@@ -80,11 +87,29 @@ class DataContainer:
   def create_df_from_top(top_runner: TopRunner, lines: list[str], num_process: int):
     # now = datetime.datetime.now()
     now = int(time.time())
+
+    # Get total info
+    total_line = None
+    total_user = ''
+    total_sys = ''
+    total_idle = ''
+    for i, line in enumerate(lines):
+      if '%Cpu' in line:
+        total_line = line
+        break
+    if total_line:
+      total_user = total_line.split('us')[0].split()[-1].strip()
+      total_sys = total_line.split('sy')[0].split()[-1].strip()
+      total_idle = total_line.split('id')[0].split()[-1].strip()
+    df_total_current = pd.DataFrame([[now, total_user, total_sys, total_idle]], columns=['datetime', 'user', 'sys', 'idle'])
+
+    # Move to line containing process info
     for i, line in enumerate(lines):
       if 'PID' in line:
         lines = lines[i + 1:]
         break
 
+    # Get process info
     process_list = []
     cpu_list = []
     mem_list = []
@@ -103,4 +128,4 @@ class DataContainer:
     df_cpu_current = pd.DataFrame([[now] + cpu_list], columns=['datetime'] + process_list)
     df_mem_current = pd.DataFrame([[now] + mem_list], columns=['datetime'] + process_list)
 
-    return df_cpu_current, df_mem_current
+    return df_total_current, df_cpu_current, df_mem_current
