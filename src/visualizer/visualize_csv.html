@@ -1,0 +1,77 @@
+<!-- prettier-ignore -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
+      crossorigin="anonymous"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.datatables.net/1.13.1/css/dataTables.bootstrap5.min.css"
+    />
+    <title>{{ title }}</title>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>{{ title }}</h1>
+
+      <table class="result_table table table-hover table-bordered" style="word-break: break-word">
+        <thead>
+          <tr class="table-primary text-center">
+            <th>Name</th>
+            <th>Mean [{{unit}}]</th>
+            <th>Peak [{{unit}}]</th>
+            <th>Std [{{unit}}]</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for stats in stats_list %}
+          <tr>
+          <td>{{ stats.name }}</td>
+          <td>{{ "{:,.1f}".format(stats.mean) }}</td>
+          <td>{{ "{:,.1f}".format(stats.max) }}</td>
+          <td>{{ "{:,.1f}".format(stats.std) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <iframe src="{{ graph_file_path }}" frameborder="0" width="100%" height="1000" scrolling="yes"></iframe>
+
+    </div>
+
+    <script
+      src="https://code.jquery.com/jquery-3.6.0.min.js"
+      integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"
+    ></script>
+    <script
+      src="https://cdn.datatables.net/1.13.1/js/dataTables.bootstrap5.min.js"
+    ></script>
+    <script>
+      $(document).ready(function() {
+        $(".result_table").DataTable({
+          order: [],  // avoid sort when load
+          lengthMenu: [
+            [10, 25, -1],
+            [10, 25, 'All'],
+          ],
+        });
+      });
+    </script>
+  </body>
+</html>
